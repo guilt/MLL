@@ -1,0 +1,16 @@
+# Image Files
+*.MLL
+*.JXL
+*.BMP
+
+# Executables
+*.OBJ
+*.O
+*.UPX
+*.EXE
+*.DLL
+
+# Directories
+OBJ/
+DIST/
+TMP/

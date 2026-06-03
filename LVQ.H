@@ -3,6 +3,10 @@
 
 #include <allegro.h>
 
+extern int showProgress;
+
+typedef enum { CM_GRAY, CM_YUV } ColorMode;
+
 typedef struct {
     float* weights;
     int    dim;
@@ -15,11 +19,11 @@ typedef struct {
     int         blockSize;
 } Codebook;
 
-Codebook* createAndTrainCodebook(BITMAP* img, int numCodes, int blockSize, int passes);
+Codebook* createAndTrainCodebook(BITMAP* img, int numCodes, int blockSize, int passes, ColorMode mode);
 void      freeCodebook(Codebook* cb);
 
-int*      compressImage(BITMAP* src, BITMAP* dst, Codebook* cb);
-void      decompressImage(BITMAP* dst, Codebook* cb, const int* indices);
+int*      compressImage(BITMAP* src, BITMAP* dst, Codebook* cb, ColorMode mode);
+void      decompressImage(BITMAP* dst, Codebook* cb, const int* indices, ColorMode mode);
 
 int       saveCompressed(const char* filename, Codebook* cb, const int* indices, int totalBlocks);
 
