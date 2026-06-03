@@ -5,8 +5,12 @@ CD /D "%~dp0"
 IF NOT EXIST DIST\mll.exe ECHO Run build.bat first && EXIT /B 1
 WHERE magick >NUL 2>NUL || ECHO Image Magick required && EXIT /B 1
 
+REM Extract first arg as path, rest as extra MLL args
 SET TARGET=%~1
-IF "%TARGET%"=="" SET TARGET=DATA\*
+FOR /F "tokens=1,*" %%A IN ("%*") DO SET MLL_EXTRA=%%B
+REM Default to DATA\* if no path given
+FOR %%A IN ("%TARGET%") DO IF "%%~xA"=="" IF NOT EXIST "%TARGET%\" SET MLL_EXTRA=%* & SET TARGET=DATA\*
+
 IF EXIST "%TARGET%\" SET TARGET=%TARGET%\*
 
 MKDIR TMP 2>NUL
@@ -30,7 +34,7 @@ FOR %%F IN (%TARGET%) DO (
         magick "%%F" -type TrueColor -depth 8 BMP3:TMP\_ref.bmp >NUL 2>NUL
 
         PUSHD TMP
-        ..\DIST\mll.exe _ref.bmp -yuv >NUL 2>_b_log.txt
+        ..\DIST\mll.exe _ref.bmp -yuv !MLL_EXTRA! >NUL 2>_b_log.txt
         IF !ERRORLEVEL! NEQ 0 (
             POPD
             ECHO !NAME!                 FAILED

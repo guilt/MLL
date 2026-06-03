@@ -14,3 +14,9 @@
 OBJ/
 DIST/
 TMP/
+
+# Test Directories
+TEST/
+
+# Artifacts
+*.ZIP

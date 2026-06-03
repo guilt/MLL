@@ -9,7 +9,8 @@
 #define MAX_DIM 128
 #define LUMA_WEIGHT 4.0f
 
-int showProgress = 0;
+bool showProgress = false;
+InitMode initMode = INIT_RANDOM;
 
 // --- RGB ↔ YUV -----------------------------------------------------------
 
@@ -151,19 +152,54 @@ Codebook* createAndTrainCodebook(BITMAP* img, int numCodes, int bs, int passes, 
     float weightBuf[MAX_DIM];
     if (mode == CM_YUV) { buildWeights(weightBuf, bs, mode); weights = weightBuf; }
 
+    int blocksH = (h) / bs, blocksW = (w) / bs;
+
     srand(time(NULL));
 
-    for (int i = 0; i < numCodes; i++) {
-        cb->vectors[i].weights = malloc(dim * sizeof(float));
-        int x = rand() % (w - bs);
-        int y = rand() % (h - bs);
-        blockToVec(img, x, y, bs, cb->vectors[i].weights, mode);
+    if (initMode == INIT_KMEANS) {
+        for (int i = 0; i < numCodes; i++)
+            cb->vectors[i].weights = malloc(dim * sizeof(float));
+
+        int totalB = blocksW * blocksH;
+        float* minD = malloc(totalB * sizeof(float));
+        float* buf = malloc(totalB * dim * sizeof(float));
+        #pragma omp parallel for
+        for (int bi = 0; bi < totalB; bi++) {
+            int bx = bi % blocksW, by = bi / blocksW;
+            blockToVec(img, bx * bs, by * bs, bs, buf + bi * dim, mode);
+            minD[bi] = 1e30f;
+        }
+
+        int pick = rand() % totalB;
+        memcpy(cb->vectors[0].weights, buf + pick * dim, dim * sizeof(float));
+
+        for (int i = 1; i < numCodes; i++) {
+            double total = 0.0;
+            #pragma omp parallel for reduction(+:total)
+            for (int bi = 0; bi < totalB; bi++) {
+                float d = distance(buf + bi * dim, cb->vectors[i - 1].weights, dim, NULL);
+                if (d < minD[bi]) minD[bi] = d;
+                total += minD[bi] * minD[bi];
+            }
+            double r = (double)rand() / RAND_MAX * total;
+            double cum = 0.0;
+            for (int bi = 0; bi < totalB; bi++) {
+                cum += minD[bi] * minD[bi];
+                if (cum >= r) { memcpy(cb->vectors[i].weights, buf + bi * dim, dim * sizeof(float)); break; }
+            }
+        }
+        free(minD);
+        free(buf);
+    } else {
+        for (int i = 0; i < numCodes; i++) {
+            cb->vectors[i].weights = malloc(dim * sizeof(float));
+            int x = rand() % (w - bs);
+            int y = rand() % (h - bs);
+            blockToVec(img, x, y, bs, cb->vectors[i].weights, mode);
+        }
     }
 
     float lr = 0.15f;
-    int barW = 30;
-
-    int blocksH = (h) / bs, blocksW = (w) / bs;
 
     for (int p = 0; p < passes; p++) {
         #pragma omp parallel for
@@ -187,6 +223,7 @@ Codebook* createAndTrainCodebook(BITMAP* img, int numCodes, int bs, int passes, 
         lr *= 0.92f;
 
         if (showProgress) {
+            int barW = 30;
             int pct = (p + 1) * 100 / passes;
             int fill = pct * barW / 100;
             printf("\rTraining  [");

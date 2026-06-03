@@ -35,12 +35,18 @@ static void getStem(const char* path, char* out, int outSize) {
 
 int main(int argc, char* argv[]) {
     const char* inFile = "test.bmp";
-    ColorMode mode = CM_GRAY;
+    ColorMode mode = CM_YUV;
+    int numCodes = 256, passes = 35;
 
     for (int i = 1; i < argc; i++) {
         if      (strcmp(argv[i], "-gray")     == 0) mode = CM_GRAY;
         else if (strcmp(argv[i], "-yuv")      == 0) mode = CM_YUV;
         else if (strcmp(argv[i], "-progress") == 0) showProgress = 1;
+        else if (strcmp(argv[i], "-codes")    == 0 && i+1 < argc) numCodes = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-passes")   == 0 && i+1 < argc) passes = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-init")     == 0 && i+1 < argc) {
+            i++; if (strcmp(argv[i], "kmeans") == 0) initMode = INIT_KMEANS;
+        }
         else if (argv[i][0] != '-')                 inFile = argv[i];
     }
 
@@ -62,7 +68,7 @@ int main(int argc, char* argv[]) {
 
     clock_t start = clock();
 
-    Codebook* cb = createAndTrainCodebook(orig, 256, 4, 35, mode);
+    Codebook* cb = createAndTrainCodebook(orig, numCodes, 4, passes, mode);
 
     int blocksW = (w + 3) / 4;
     int blocksH = (h + 3) / 4;

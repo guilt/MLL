@@ -1,11 +1,14 @@
 #ifndef LVQ_H
 #define LVQ_H
 
+#include <stdbool.h>
 #include <allegro.h>
 
-extern int showProgress;
+extern bool showProgress;
 
 typedef enum { CM_GRAY, CM_YUV } ColorMode;
+typedef enum { INIT_RANDOM, INIT_KMEANS } InitMode;
+extern InitMode initMode;
 
 typedef struct {
     float* weights;
