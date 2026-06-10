@@ -12,7 +12,7 @@
 bool showProgress = false;
 InitMode initMode = INIT_RANDOM;
 
-// --- RGB ↔ YUV -----------------------------------------------------------
+// --- RGB <-> YUV ----------------------------------------------------------
 
 static void rgbToYuv(float r, float g, float b, float* y, float* u, float* v) {
     *y = 0.299f * r + 0.587f * g + 0.114f * b;

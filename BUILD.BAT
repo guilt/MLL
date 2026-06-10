@@ -1,36 +1,84 @@
 @ECHO OFF
-SETLOCAL ENABLEDELAYEDEXPANSION
-IF NOT DEFINED EXTDEV ECHO ERROR: EXTDEV environment variable not set. && EXIT /B 1
-SET APP=%~dp0
-CD /D "%APP%"
 
-SET MINGDIR=%EXTDEV%\MinGW32
-SET GCC="%MINGDIR%\Bin\Gcc"
-SET CFLAGS=-std=gnu99 -Wall -m32 -O1 -fopenmp -I"." -I"%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Include"
+REM ----- Platform selection -------------------------------------------
+REM   DJGPP  - DJGPP GCC (DOS)
+REM   MSVC   - Microsoft Visual C++ (Windows)
+REM   MINGW  - MinGW-w64 / GCC (Windows)
 
-SET LIBS=-L"%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Lib\MinGW\x86"
-SET ALLEGRO_LIBS=-lalleg -lkernel32 -luser32 -lgdi32 -lcomdlg32 -lole32 -ldinput -lddraw -ldxguid -lwinmm -ldsound
+IF "%1"=="DJGPP" SET BLDPLATFORM=DJGPP
+IF "%1"=="MSVC"  SET BLDPLATFORM=MSVC
+IF "%1"=="MINGW" SET BLDPLATFORM=MINGW
 
-MKDIR OBJ 2>NUL
-MKDIR DIST 2>NUL
+IF "%BLDPLATFORM%"=="" IF "%WINDIR%"=="" SET BLDPLATFORM=DJGPP
+IF "%BLDPLATFORM%"=="" SET BLDPLATFORM=MINGW
+
+ECHO [CONFIG] BLDPLATFORM is now %BLDPLATFORM%
+
+REM ----- Compiler setup -----------------------------------------------
+IF NOT "%EXTDEV%"=="" SET DOSROOT=%EXTDEV%\DOSROOT
+IF "%EXTDEV%"=="" SET DOSROOT=C:\
+
+REM GCC-style   : OUT_OBJ=-o  OUT_TO=-o
+REM MSVC-style  : OUT_OBJ=/Fo OUT_TO=/Fe
+
+IF "%BLDPLATFORM%"=="DJGPP" SET CC="%DOSROOT%\DJGPP\BIN\GCC.EXE"
+IF "%BLDPLATFORM%"=="DJGPP" SET CFLAGS=-std=gnu99 -Wall -O1 -I. -I%DOSROOT%\DJGPP\INCLUDE
+IF "%BLDPLATFORM%"=="DJGPP" SET LDFLAGS=-Wl,--allow-multiple-definition
+IF "%BLDPLATFORM%"=="DJGPP" SET OUT_OBJ=-o
+IF "%BLDPLATFORM%"=="DJGPP" SET OUT_TO=-o
+IF "%BLDPLATFORM%"=="DJGPP" SET LIBS=-L%DOSROOT%\DJGPP\LIB -lalleg -lm
+
+IF "%BLDPLATFORM%"=="MSVC" SET CC=cl
+IF "%BLDPLATFORM%"=="MSVC" SET CFLAGS=/nologo /EHsc /DWIN /I. /I"%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Include"
+IF "%BLDPLATFORM%"=="MSVC" SET OUT_OBJ=/Fo
+IF "%BLDPLATFORM%"=="MSVC" SET OUT_TO=/Fe
+IF "%BLDPLATFORM%"=="MSVC" SET LIBS="%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Lib\MSVC\x86\alleg.lib" kernel32.lib user32.lib gdi32.lib comdlg32.lib ole32.lib winmm.lib /link /SUBSYSTEM:WINDOWS
+
+IF "%BLDPLATFORM%"=="MINGW" SET CC="%EXTDEV%\MinGW32\Bin\Gcc"
+IF "%BLDPLATFORM%"=="MINGW" SET CFLAGS=-std=gnu99 -Wall -m32 -O1 -fopenmp -I. -I"%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Include"
+IF "%BLDPLATFORM%"=="MINGW" SET LDFLAGS=-static -static-libgcc -m32 -fopenmp -Wl,--allow-multiple-definition
+IF "%BLDPLATFORM%"=="MINGW" SET OUT_OBJ=-o
+IF "%BLDPLATFORM%"=="MINGW" SET OUT_TO=-o
+IF "%BLDPLATFORM%"=="MINGW" SET LIBS=-L"%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Lib\MinGW\x86" -lalleg -lkernel32 -luser32 -lgdi32 -lcomdlg32 -lole32 -ldinput -lddraw -ldxguid -lwinmm -ldsound
+
+REM ----- Debug mode (arg2 = DEBUG=1) ----------------------------------
+IF "%2"=="" GOTO :BUILD
+IF "%BLDPLATFORM%"=="DJGPP" SET CFLAGS=%CFLAGS% -DDEBUG -g
+IF "%BLDPLATFORM%"=="MSVC"  SET CFLAGS=%CFLAGS% /DDEBUG /Zi
+IF "%BLDPLATFORM%"=="MINGW" SET CFLAGS=%CFLAGS% -DDEBUG -g
+
+:BUILD
+ECHO [CONFIG] CC=%CC%
+ECHO [CONFIG] CFLAGS=%CFLAGS%
+ECHO [CONFIG] LDFLAGS=%LDFLAGS%
+ECHO [CONFIG] OUT_OBJ=%OUT_OBJ%
+ECHO [CONFIG] OUT_TO=%OUT_TO%
+ECHO [CONFIG] LIBS=%LIBS%
+REM
+
+IF NOT EXIST OBJ\ MKDIR OBJ
+IF NOT EXIST DIST\ MKDIR DIST
 
 ECHO Compiling...
-%GCC% %CFLAGS% -c mll.c -o OBJ\MLL.OBJ
-%GCC% %CFLAGS% -c lvq.c -o OBJ\LVQ.OBJ
-%GCC% %CFLAGS% -c psnr.c -o OBJ\PSNR.OBJ
-IF %ERRORLEVEL% NEQ 0 ECHO Compilation failed && EXIT /B 1
+%CC% %CFLAGS% -c mll.c %OUT_OBJ%OBJ\MLL.OBJ
+IF ERRORLEVEL 1 GOTO :FAIL
+%CC% %CFLAGS% -c lvq.c %OUT_OBJ%OBJ\LVQ.OBJ
+IF ERRORLEVEL 1 GOTO :FAIL
+%CC% %CFLAGS% -c psnr.c %OUT_OBJ%OBJ\PSNR.OBJ
+IF ERRORLEVEL 1 GOTO :FAIL
 
 ECHO Linking...
-%GCC% -static -static-libgcc -m32 -fopenmp -Wl,--allow-multiple-definition -o DIST\mll.exe OBJ\MLL.OBJ OBJ\LVQ.OBJ %LIBS% %ALLEGRO_LIBS%
-%GCC% -static -static-libgcc -m32 -fopenmp -Wl,--allow-multiple-definition -o DIST\psnr.exe OBJ\PSNR.OBJ %LIBS% %ALLEGRO_LIBS%
-IF %ERRORLEVEL% NEQ 0 ECHO Linking failed && EXIT /B 1
+%CC% %LDFLAGS% %OUT_TO%DIST\MLL.EXE OBJ\MLL.OBJ OBJ\LVQ.OBJ %LIBS%
+IF ERRORLEVEL 1 GOTO :FAIL
+%CC% %LDFLAGS% %OUT_TO%DIST\PSNR.EXE OBJ\PSNR.OBJ %LIBS%
+IF ERRORLEVEL 1 GOTO :FAIL
 
-COPY /Y "%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Bin\x86\alleg42.dll" DIST\ >NUL
+IF NOT "%EXTDEV%"=="" IF EXIST "%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Bin\x86\ALLEG42.DLL" COPY "%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Bin\x86\ALLEG42.DLL" DIST\ >NUL
 
-SET UPXE="%EXTDEV%\UPX-5.0.1-Win32\upx.exe"
-IF EXIST %UPXE% (
-    %UPXE% --best --quiet DIST\mll.exe DIST\psnr.exe DIST\alleg42.dll
-)
+ECHO SUCCESS: DIST\MLL.EXE DIST\PSNR.EXE
+GOTO :END
 
-ECHO SUCCESS: DIST\mll.exe DIST\psnr.exe
-EXIT /B 0
+:FAIL
+ECHO Build failed.
+
+:END

@@ -1,27 +1,31 @@
-# MLL — Machine Learnt LVQ
+# MLL - Machine Learnt LVQ
 
-**Machine Learnt LVQ** (My Lady Love • My Love Life • My Lasting Legacy)
+**Machine Learnt LVQ** (My Lady Love - My Love Life - My Lasting Legacy)
 
 A clean, portable, from-scratch Vector Quantization compressor written in C + Allegro 4.  
-Resurrected in 2026 from a lost 2002–2003 university project.
+Resurrected in 2026 from a lost 2002-2003 university project.
 
 > The things you pour your soul into don't always disappear.  
-> Sometimes they just wait for the right moment to come back — often more alive than before.
+> Sometimes they just wait for the right moment to come back - often more alive than before.
 
 ## Features
 - Pure online adaptive LVQ (your original 2002 method)
 - Grayscale or YUV 4:2:0 with luma-weighted training
 - OpenMP-parallelized training, compression, and PSNR
 - Bit-packed file format (your original bit IO style)
-- Clean, readable, portable C code — 8.3 filenames ready
+- Clean, readable, portable C code - 8.3 filenames ready
 - Built with heart and intention
 
 ## Quick Start
 
 ```bash
-build.bat                          # compile → DIST\mll.exe + DIST\psnr.exe
-DIST\mll.exe TEST\Test.bmp -yuv    # compress → TEST\Test.mll + TEST\Test_d.bmp
-DIST\psnr.exe TEST\Test.bmp TEST\Test_d.bmp   # compare → PSNR
+build.bat                          # auto-detect: DJGPP (DOS) or MINGW (Windows)
+build.bat MINGW                    # MinGW-w64 / GCC (Windows, default when WINDIR is set)
+build.bat MSVC                     # Microsoft Visual C++ (Windows)
+build.bat DJGPP                    # DJGPP GCC (DOS, default when no WINDIR)
+build.bat MINGW 1                  # MINGW with debug symbols
+DIST\mll.exe TEST\Test.bmp -yuv    # compress -> TEST\Test.mll + TEST\Test_d.bmp
+DIST\psnr.exe TEST\Test.bmp TEST\Test_d.bmp   # compare -> PSNR
 ```
 
 ## Usage
@@ -34,7 +38,7 @@ DIST\psnr.exe TEST\Test.bmp TEST\Test_d.bmp   # compare → PSNR
 | `mll input.bmp -yuv` | **Default.** YUV 4:2:0 with luma-weighted training (dim = 24) |
 | `mll input.bmp -yuv -progress` | Show a progress bar during training |
 
-The default `-yuv` mode subsamples chroma 2×2 and weights luma 4× during codebook training. This gives near-RGB quality at ~half the vector dimension.
+The default `-yuv` mode subsamples chroma 2x2 and weights luma 4x during codebook training. This gives near-RGB quality at ~half the vector dimension.
 
 ### Tuning quality vs size
 
@@ -43,9 +47,9 @@ The default `-yuv` mode subsamples chroma 2×2 and weights luma 4× during codeb
 | `mll input.bmp -codes 256` | 256 entries | ~22 KB | 28.2 dB |
 | `mll input.bmp -codes 512` | 512 entries | ~31 KB | 29.2 dB |
 | `mll input.bmp -codes 1024` | 1024 entries | ~46 KB | ~30 dB |
-| `mll input.bmp -codes 256 -passes 70` | 256 entries, 2× training | ~22 KB | 28.2 dB (no gain) |
+| `mll input.bmp -codes 256 -passes 70` | 256 entries, 2x training | ~22 KB | 28.2 dB (no gain) |
 
-Doubling codes gives +1–2 dB PSNR for +36% file size. More passes or slower LR decay doesn't help — the algorithm converges within 35 passes.
+Doubling codes gives +1-2 dB PSNR for +36% file size. More passes or slower LR decay doesn't help - the algorithm converges within 35 passes.
 
 ### Initialization
 
@@ -91,7 +95,7 @@ Each source is converted to BMP via `magick`, compressed with MLL and JPEG-XL (q
 
 ## Benchmark Results
 
-All images 512×512, 4×4 blocks, YUV mode with luma-weighted training (35 passes).  
+All images 512x512, 4x4 blocks, YUV mode with luma-weighted training (35 passes).  
 Timed on a ~2018-era laptop i7 (4 cores, 8 threads).
 
 ### Default: 256 codes, random init
@@ -116,12 +120,12 @@ Timed on a ~2018-era laptop i7 (4 cores, 8 threads).
 | Mandril             | 30724  | 117383 | 1012 ms | 21.34 dB   | 28.04 dB   |
 | CameraMan           | 30724  | 33140  | 859 ms  | 34.59 dB   | 46.12 dB   |
 
-MLL uses a fixed-size codebook regardless of image complexity. 256 codes = 22,532 bytes; 512 codes = 30,724 bytes. JPEG-XL adapts — from 22 KB (simple) to 117 KB (complex).  
+MLL uses a fixed-size codebook regardless of image complexity. 256 codes = 22,532 bytes; 512 codes = 30,724 bytes. JPEG-XL adapts - from 22 KB (simple) to 117 KB (complex).  
 Encoding time is ~500 ms (256 codes) or ~900 ms (512 codes) per image, measured from within the process with no I/O or logging overhead.
 
 ### What we found
 
-- **More codes helps**: 256→512 gives +0.6 to +1.7 dB PSNR for +36% file size and ~2× time. The quality-per-bit is competitive with JXL on simple images.
+- **More codes helps**: 256->512 gives +0.6 to +1.7 dB PSNR for +36% file size and ~2x time. The quality-per-bit is competitive with JXL on simple images.
 - **K-means++ init doesn't help**: After 35 LVQ passes, random init converges to the same local optima. K-means++ adds ~50 ms with no quality gain. The LVQ training is robust enough to overcome poor initialization.
 - **Slower LR decay doesn't help**: 0.96 decay vs 0.92 decay with 70 passes gave the same PSNR as 35 passes with standard decay. The algorithm converges within 35 passes.
 - **The real gap to JXL**: JXL uses adaptive bit allocation (more bits for complex regions, fewer for flat), entropy coding, and a modern transform. Our fixed-rate per-block approach is the main limitation.
@@ -130,16 +134,16 @@ Encoding time is ~500 ms (256 codes) or ~900 ms (512 codes) per image, measured 
 
 | Tool | Description |
 |------|-------------|
-| `mll.exe` | Compress an image: `mll input.bmp [-yuv\|-gray] [-codes N] [-passes N] [-init random\|kmeans] [-progress]` → `input.mll` + `input_d.bmp` |
-| `psnr.exe` | Compare two images: `psnr ref.bmp cmp.bmp [diff.bmp]` → PSNR + per-channel MSE |
-| `build.bat` | Compile everything into `DIST\` |
+| `mll.exe` | Compress an image: `mll input.bmp [-yuv\|-gray] [-codes N] [-passes N] [-init random\|kmeans] [-progress]` -> `input.mll` + `input_d.bmp` |
+| `psnr.exe` | Compare two images: `psnr ref.bmp cmp.bmp [diff.bmp]` -> PSNR + per-channel MSE |
+| `build.bat` | Compile everything into `DIST\` (platform: DJGPP/MSVC/MINGW) |
 | `bench.bat` | Benchmark all images: `bench.bat [path] [extra mll flags]` |
 
 ## Project Story
 
-This is the resurrection of a university project I built in 2002–2003 as an undergrad.  
+This is the resurrection of a university project I built in 2002-2003 as an undergrad.  
 I lost all the original code and paper to bit rot.  
-Decades later, with the help of my lovely Grok, we brought it back to life — cleaner, faster, and full of love.
+Decades later, with the help of my lovely Grok, we brought it back to life - cleaner, faster, and full of love.
 
 **MLL** stands for:
 - **Machine Learnt LVQ**

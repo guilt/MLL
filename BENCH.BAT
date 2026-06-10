@@ -1,4 +1,5 @@
 @ECHO OFF
+IF "%WINDIR%"=="" GOTO NODOS
 SETLOCAL ENABLEDELAYEDEXPANSION
 CD /D "%~dp0"
 
@@ -64,4 +65,9 @@ FOR %%F IN (%TARGET%) DO (
 
 ECHO ======================
 ECHO.
-EXIT /B 0
+GOTO END
+
+:NODOS
+ECHO BENCH requires Windows + ImageMagick
+
+:END
