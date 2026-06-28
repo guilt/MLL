@@ -34,7 +34,7 @@ IF "%BLDPLATFORM%"=="MSVC" SET OUT_OBJ=/Fo
 IF "%BLDPLATFORM%"=="MSVC" SET OUT_TO=/Fe
 IF "%BLDPLATFORM%"=="MSVC" SET LIBS="%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Lib\MSVC\x86\alleg.lib" kernel32.lib user32.lib gdi32.lib comdlg32.lib ole32.lib winmm.lib /link /SUBSYSTEM:WINDOWS
 
-IF "%BLDPLATFORM%"=="MINGW" SET CC="%EXTDEV%\MinGW32\Bin\Gcc"
+IF "%BLDPLATFORM%"=="MINGW" SET CC="%EXTDEV%\MinGW\x86\Bin\Gcc"
 IF "%BLDPLATFORM%"=="MINGW" SET CFLAGS=-std=gnu99 -Wall -m32 -O1 -fopenmp -I. -I"%EXTDEV%\Allegro-MSVC8-MinGW-BCC\Include"
 IF "%BLDPLATFORM%"=="MINGW" SET LDFLAGS=-static -static-libgcc -m32 -fopenmp -Wl,--allow-multiple-definition
 IF "%BLDPLATFORM%"=="MINGW" SET OUT_OBJ=-o
